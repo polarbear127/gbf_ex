@@ -1,0 +1,35 @@
+{
+  "manifest_version": 2,
+  "minimum_chrome_version": "10.0",
+  
+  "devtools_page": "gbf_devtool.html",
+
+  "name": "GBF EX",
+  "description": "Tools for granblue fantasy",
+  "version": "0.0.1",
+
+  "browser_action": {
+    "default_icon": "icon.png",
+    "default_popup": "popup.html"
+  },
+
+   "background": {
+    "scripts": ["agency.js"]
+  },
+
+  "content_scripts": [
+    {
+    	"run_at": "document_end",
+        "matches": ["http://game.granbluefantasy.jp/*"],
+        "js": ["content.js"]
+    }
+  ],
+
+  "permissions": [
+  	"tabs",
+    "activeTab",
+    "webRequest",
+    "webRequestBlocking",
+    "http://game.granbluefantasy.jp/*"
+  ]
+}
