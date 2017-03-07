@@ -1,0 +1,25 @@
+Chrome development tool extension for gbf.
+
+auto play poker in casino.
+
+auto play islanders.
+
+How to change battle plan:
+
+In gbf_panel.js
+example:
+skillList:
+[
+[[1,4],[2,1],[4,2],[4,1],[3,2]]//round0
+]
+means
+first round:[[character1, skill4],[character2, skill1],[character4, skill2],[character4, skill1],[character3, skill2]]
+
+if you want to set second round just add another array to the skillList.
+
+if round number >= length of skillList or all skills are use up
+party will turn to attack.
+
+no summons.
+no target need skills. 
+

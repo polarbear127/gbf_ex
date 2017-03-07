@@ -91,6 +91,7 @@ for(var i=0;i<battlePlan.skillList.length;i++){
 
 var battleInfo = {};
 
+
 //settings here:
 var set_play_casino = true;
 var set_play_little_islander = true;
