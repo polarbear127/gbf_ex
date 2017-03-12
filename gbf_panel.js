@@ -2,6 +2,7 @@
 //we need some places to show the status, directly change the DOM is dangerous!
 var mainDiv = document.getElementById('main');
 var infoDiv = document.getElementById('info');
+var selectAllBtn = document.getElementById('select_all');
 
 var agencyConn = chrome.runtime.connect({
     name: "devtools-agency"
@@ -45,6 +46,7 @@ var BATTLE_ATTACKRESULT = "http://game.granbluefantasy.jp/multiraid/normal_attac
 var BATTLE_SKILLRESULT = "http://game.granbluefantasy.jp/multiraid/ability_result";
 var BATTLE_RESULT = "http://game.granbluefantasy.jp/resultmulti/data";
 
+var NO_REPEAT = -1;
 var SHORT_TIME = 10000;
 var MEDIUM_TIME = 30000;
 var LONG_TIME = 60000;
@@ -73,6 +75,7 @@ var CelesteVH = "300251";
 
 var targetQuests=[TiamatVH, ColossusVH, LeviathanVH, YggdrasilVH, AdversaVH, CelesteVH];
 
+/* //ssr -> islander vh*/
 var battlePlan = {
 isBackUp:false,
 skillList:
@@ -80,6 +83,21 @@ skillList:
 [[1,4],[2,1],[4,2],[4,1],[3,2]]//round0
 ]
 };
+/*
+var battlePlan = {
+isBackUp:false,
+skillList:
+[
+[[1,1],[1,2],[1,3],[1,4],[2,1],[2,2],[4,1],[4,2]],//round0
+[],//round1
+[],//round2
+[[3,1],[3,2],[3,3]]//round3
+]
+};*/
+
+var supporterAtter = "dark";
+var supporterSummon = ["Bahamut"];
+
 //temporary code to transfer 1 based index to 0 based index.
 for(var i=0;i<battlePlan.skillList.length;i++){
 	var round = battlePlan.skillList[i];
@@ -162,7 +180,7 @@ function checkQuestStart(content, encode){
 }
 
 function chooseSupporter(content, encode){
-	passMessage({type:"chooseSupporter", data:{attr:"dark", supporter:["Bahamut"]}, timeLimit:MEDIUM_TIME});
+	passMessage({type:"chooseSupporter", data:{attr:supporterAtter, supporter:supporterSummon}, timeLimit:MEDIUM_TIME});
 }
 
 function chooseDeck(content, encode){
@@ -189,6 +207,7 @@ function nextTurn(content, encode){
 	var turn = battleInfo.status.turn-1;
 	if(turn<battlePlan.skillList.length){
 		skillList = battlePlan.skillList[turn];
+		skillList = checkSkillSeal(skillList, battleInfo);
 	}
 	if(!checkEnd(content, encode)){
 		passMessage({type:"combat", 
@@ -198,6 +217,36 @@ function nextTurn(content, encode){
 			timeLimit:LONG_TIME
 		});
 	}
+}
+
+function checkSkillSeal(skillList, battleInfo){
+	var scenario = battleInfo.scenario;
+	var skillSealCharacters = {0:false, 1:false, 2:false, 3:false};
+	for(var i=0;i<scenario.length;i++){
+		if(scenario[i].cmd&&scenario[i].cmd=="condition"){
+			var debuff = scenario[i].condition.debuff;
+			if(!debuff) continue;
+			for(var j=0;j<debuff.length;j++){
+				if(debuff[j].status&&debuff[j].status=="1033"){
+					skillSealCharacters[scenario[i].pos]=true;
+					break;
+				}
+			}
+
+		}
+	}
+
+	for(var i=0;i<4;i++){
+		if(skillSealCharacters[i]){
+			for(var j=0;j<skillList.length;j++){
+				if(skillList[j][0]==i){
+					skillList.splice(j,1);
+					j--;
+				}
+			}
+		}
+	}
+	return skillList;
 }
 
 function checkEnd(content, encode){
@@ -252,4 +301,7 @@ function hlResult(content, encode){
 }
 //casino------------------------------------------------------------------------------------------
 
-//islenderVH--------------------------------------------------------------------------------------
+//Button--------------------------------------------------------------------------------------
+selectAllBtn.addEventListener("click", function(){
+	passMessage({type:"select_all", timeLimit:NO_REPEAT});
+});

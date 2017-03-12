@@ -103,7 +103,7 @@ function simClick(board){
 	board.dispatchEvent(md);
 	setTimeout(function(){
 		board.dispatchEvent(mu);
-	},70+Math.random()*20);
+	},40+Math.random()*5);
     
 }
 
@@ -227,9 +227,11 @@ chrome.runtime.onMessage.addListener(
 	}
 	initRound();
 	handleRequest(request, sender, sendResponse);
-    reloadTimer = setTimeout(function(){
-  		handleRequest(request, sender, sendResponse);
-  	}, request.timeLimit);//automactilly canceled if get message within specifict time.
+	if(request.timeLimit>0){
+	    reloadTimer = setTimeout(function(){
+	  		handleRequest(request, sender, sendResponse);
+	  	}, request.timeLimit);//automactilly canceled if get message within specifict time.
+	}
 });
 
 function handleRequest(request, sender, sendResponse){
@@ -256,9 +258,26 @@ function handleRequest(request, sender, sendResponse){
   						} break;
   		case "combatEnd": clickEnd();break;
   		case "combatResult" : backToQuest(); break;
+  		case "select_all": selectAll();break;
   	}
     sendResponse({farewell: "goodbye"});
 }
+
+//select all-------------------------------------------------------------------------------------
+var WEAPON_SELL_URL = "http://game.granbluefantasy.jp/#sell";
+function selectAll(){
+	var href = window.location.href;
+	console.log("select all href: "+href);
+	if(href.includes(WEAPON_SELL_URL)){
+		var weaponList = document.getElementById("lis-weapon");
+		var weapons = weaponList.children;
+		for(var i=0;i<weapons.length;i++){
+			setTimeout(simClick, i*250, weapons[i]);
+		}
+	}
+}
+
+//select all-------------------------------------------------------------------------------------
 
 //route------------------------------------------------------------------------------------------
 function mainClick(btn){

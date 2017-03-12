@@ -23,3 +23,17 @@ party will turn to attack.
 no summons.
 no target need skills. 
 
+How to set summon:
+var supporterAtter = "dark";//supporter attribute
+var supporterSummon = ["Bahamut"];//supporter summon
+
+available attributes:
+fire
+water
+earth
+wind 
+light 
+dark
+misc
+
+
