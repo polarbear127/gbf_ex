@@ -1,4 +1,5 @@
 var BreakException = {};
+var global_timer_list = [];
 
 var POKER_OK_BTN_CLASS = "prt-ok";
 var POKER_START_BTN_CLASS = "prt-start";
@@ -190,10 +191,21 @@ function checkDom(btns){
 	return ready;
 }
 
+function checkDomByName(btns){
+	var doms = [];
+	btns.forEach(function(btnName){
+		doms.push({name:btnName,
+				   btnType:HTML_ELEM
+				  })
+	});
+	return checkDom(doms);
+}
+
 //for buttons in list, you need to provide a handler whitch can return the target view
 function waitAndClickList(targetHandler){
 	var args = toArray(arguments);
 	var checkTimer = setInterval (deal, 200, targetHandler, args.slice(1));
+	global_timer_list.push(checkTimer);
 	function deal(targetHandler, args){
 		var btn = targetHandler(...args);
 		if(btn!=null){
@@ -218,6 +230,15 @@ function isHidden(el) {
 }
 
 
+function initRound(){
+	skillnum=0; 
+	state=0;
+	clickTimerStart = false;
+	clickTimer = 0;
+	firstTry = true;
+	checkTimer = 0;
+}
+
 ////get instruction from panel!
 var reloadTimer = 0;
 chrome.runtime.onMessage.addListener(
@@ -226,6 +247,7 @@ chrome.runtime.onMessage.addListener(
 	  clearTimeout(reloadTimer);
 	}
 	initRound();
+	initMenuRoute();
 	handleRequest(request, sender, sendResponse);
 	if(request.timeLimit>0){
 	    reloadTimer = setTimeout(function(){
@@ -248,9 +270,10 @@ function handleRequest(request, sender, sendResponse){
   		break;
   		case "mainMenu":mainClick(request.data);break;
   		case "targetQuests":listToTargetQuest(request.data);break;
+  		case "targetEvent": toTargetEvent(request.data);break;
   		case "questStart":clickOk();break;
   		case "chooseSupporter": chooseSupporter(request.data.attr, request.data.supporter);break;
-  		case "chooseDeck":clickGeneral('btn-usual-ok se-quest-start');break;
+  		case "chooseDeck":chooseDeck(request.data);break;
   		case "combat": if(typeof request.data.isBackUp!='undefined'){
   							combatBackUp(request.data.isBackUp, request.data.skillList).then(combat);
   						} else {
@@ -259,8 +282,16 @@ function handleRequest(request, sender, sendResponse){
   		case "combatEnd": clickEnd();break;
   		case "combatResult" : backToQuest(); break;
   		case "select_all": selectAll();break;
+  		case "stop":global_timer_list.forEach(function(t){clearInterval(t)}); 
+  					global_timer_list.length = 0;
+  					break;
+  		case "reload":location.reload(true);break;
   	}
     sendResponse({farewell: "goodbye"});
+}
+
+function sendMsg(state, data){
+	chrome.runtime.sendMessage({state:state, data:data});
 }
 
 //select all-------------------------------------------------------------------------------------
@@ -281,37 +312,96 @@ function selectAll(){
 
 //route------------------------------------------------------------------------------------------
 function mainClick(btn){
-	waitAndClick([{
-		name: MAIN_QUEST_BTN_CLASS,
-		btnType:HTML_ELEM,
-		needClick:false
-	},
-	{
-		name: "btn-link-quest raid se-ok",
-		waitTime:2000,
-		btnType:HTML_ELEM,
-		needClick:true,
-		needCheck:false		
-	},
-	{
-		name: "btn-link-quest se-ok",
-		waitTime:2000,
-		btnType:HTML_ELEM,
-		needClick:true,
-		needCheck:false		
-	},
-	{
-		name: "prt-assault-time",
-		waitTime:2000,
-		btnType:HTML_ELEM,
-		needClick:true,
-		needCheck:false		
+	if(btn == "quest"){
+		waitAndClick([{
+			name: MAIN_QUEST_BTN_CLASS,
+			btnType:HTML_ELEM,
+			needClick:false
+		},
+		{
+			name: "btn-link-quest raid se-ok",
+			waitTime:2000,
+			btnType:HTML_ELEM,
+			needClick:true,
+			needCheck:false		
+		},
+		{
+			name: "btn-link-quest se-ok",
+			waitTime:2000,
+			btnType:HTML_ELEM,
+			needClick:true,
+			needCheck:false		
+		},
+		{
+			name: "prt-assault-time",
+			waitTime:2000,
+			btnType:HTML_ELEM,
+			needClick:true,
+			needCheck:false		
+		}
+		], 1);
+	} else if(btn.includes("event")){
+		var checkTimer = setInterval(deal, 200)
+		function deal(){
+			var banners = document.getElementsByClassName("lis-banner");
+			var bannerDom = null;
+			for(var i=0;i<banners.length;i++){
+				var c = banners[i].getElementsByClassName("btn-banner")[0];
+				if(c&&c.hasAttribute("data-location-href")&&c.getAttribute("data-location-href")==btn){
+					bannerDom = c;
+					break;
+				}
+			}
+			if(bannerDom!=null){
+				clearInterval(checkTimer);
+				simClick(bannerDom);
+			}
+		}
 	}
-	], 1);
 }
 
 function listToTargetQuest(targetQuests){
 	waitAndClickList(findTargetQuest, targetQuests);
+}
+
+//multi-level menu quest selection
+var menuLevel=0, menuTimerCount=0;
+function initMenuRoute(){
+	menuLevel=0;
+	menuTimerCount=0;
+}
+function toTargetEvent(data){
+	var checkTimer = setInterval(deal, 200);
+	function deal(){
+		if(menuTimerCount==0){
+			if(data[menuLevel].type == "single"){
+				waitAndClick([{name:data[menuLevel].name,
+							   btnType:HTML_ELEM,
+							   needClick:true,
+							   waitTime:200}],1);
+			} else {
+				var btns = document.getElementsByClassName(data[menuLevel].name);
+				var targetBtn = null;
+				for(var b=0;b<btns.length;b++){
+					if(btns[b].hasAttribute(data[menuLevel].targetAttr)
+					   &&btns[b].getAttribute(data[menuLevel].targetAttr)==data[menuLevel].id){
+						targetBtn = btns[b];
+					}
+				}
+				if(targetBtn!=null){
+					simClick(targetBtn);
+					clearInterval(checkTimer);
+				}
+			}
+		}
+		if(menuTimerCount>=3){
+			if(menuLevel<data.length-1&&checkDom([{name:data[menuLevel].check, btnType:HTML_ELEM}])){
+				menuLevel++;
+			}
+		}
+		menuTimerCount++;
+		menuTimerCount=menuTimerCount%5;
+	}
 }
 
 function chooseSupporter(attr, supporter){
@@ -386,9 +476,16 @@ function findSupporter(attrNum, supporter){
 	return supportElem;
 }
 
+var MAX_AP_GAP = 9999;
 function findTargetQuest(targetQuests){
 	var questsList = toArray(document.getElementsByClassName("prt-list-contents"));
+	if(questsList.length==0){
+		return null;
+	}
 	var ans = null;
+	var minApGap = MAX_AP_GAP;
+	var userStam = 0;
+	var totalStam = 0;
 	try {
 		for(var i=0;i<targetQuests.length;i++){
 			questsList.forEach(function(questDiv){
@@ -397,8 +494,24 @@ function findTargetQuest(targetQuests){
 					if(btn.hasAttribute("data-quest-id") && btn.getAttribute("data-quest-id") == targetQuests[i]) {
 	        			var targetBtn = btn.getElementsByClassName("prt-button-cover")[0];
 	        			if(targetBtn&&!isHidden(targetBtn)){
-	        				ans = targetBtn;
-	        				throw BreakException;
+	        				var targetStam = btn.getElementsByClassName("prt-quest-detail")[0]
+	        								  .getElementsByClassName("prt-quest-body")[0]
+	        								  .getElementsByClassName("prt-quest-description")[0]
+	        								  .getElementsByClassName("prt-quest-info")[0]
+	        								  .getElementsByClassName("txt-stamina")[0]
+	        								  .innerText;
+	        				targetStam = parseInt(targetStam.substring(2));
+	        				var stamInfo = document.getElementsByClassName("prt-user-stamina")[0]
+	        									.getElementsByClassName("txt-stamina-value")[0]["title"];
+	        				stamInfo = stamInfo.split('/');
+	        				userStam = parseInt(stamInfo[0]);
+	        				totalStam = parseInt(stamInfo[1]);
+	        				if(targetStam+userStam>=0){
+	        					ans = targetBtn;
+	        					throw BreakException;
+	        				} else {
+	        					minApGap = Math.min(-(targetStam+userStam));
+	        				}
 	        			}
 	    			}
 				})
@@ -407,7 +520,19 @@ function findTargetQuest(targetQuests){
 	} catch(e){
 		if (e !== BreakException) throw e;
 	}
-	return ans;
+	if(ans!=null){
+		return ans;
+	} else {
+		if(minApGap!=MAX_AP_GAP){
+			sendMsg("lackStam", {stamGap:minApGap, 
+								totalStam:totalStam,
+								userStam:userStam,});
+		} else {
+			sendMsg("noQuestFound",{});
+		}
+		return null;
+	}
+	
 }
 
 function clickOk(){
@@ -426,6 +551,49 @@ function clickGeneral(name){
 		btnType:HTML_ELEM,
 		needClick:true,	
 	}]);	
+}
+
+var deckStep = 0;
+function chooseDeck(data){
+	var checkTimer = setInterval(deal,200);
+	var to_deck=0, prevdeck = -1;
+	var countTry = 0;
+	var decks = null;
+	function deal(){
+		switch(deckStep){
+			case 0: if(checkDom([{name:"lis-deck", btnType:HTML_ELEM}])){
+						deckStep++;
+					}break;
+			case 1: decks = document.getElementsByClassName("lis-deck");
+					for(var i=0;i<decks.length;i++){
+						if(decks[i].getAttribute("data-deck-name")==data){
+							to_deck = parseInt(decks[i].getAttribute("data-index"));
+							break;
+						}
+					}deckStep++;
+			case 2:	var current_deck = findExact(decks, {name:"lis-deck flex-active-slide"})[0];
+					var cur_index = parseInt(current_deck.getAttribute("data-index"));
+						if(prevdeck!=cur_index){
+							if(to_deck<cur_index){
+								clickGeneral("flex-prev");
+							} else if(to_deck>cur_index){
+								clickGeneral("flex-next");
+							}
+							countTry = 0;
+						} else {
+							countTry++;
+						}
+						if(to_deck==cur_index){
+							clearInterval(checkTimer);
+							clickGeneral('btn-usual-ok se-quest-start onm-tc-gbf');
+						}
+						prevdeck = cur_index;
+						if(countTry>10){
+							prevdeck = -1;
+						}
+					break;
+		}
+	}
 }
 
 
@@ -486,6 +654,18 @@ var okAbilityDom = {
 	btnType:HTML_ELEM,
 };
 
+var okSummonDom = {
+	name: "btn-usual-ok btn-summon-use",
+	waitTime:1000,
+	btnType:HTML_ELEM,
+};
+
+var cancelDom = {
+	name: "btn-usual-cancel",
+	waitTime:1000,
+	btnType:HTML_ELEM,
+};
+
 var cancelAbilityDom = {
 	name: "btn-usual-cancel btn-ability-cancel",
 	waitTime:1000,
@@ -504,6 +684,13 @@ var backDom1 = {
 	btnType:HTML_ELEM,
 	straight:true	
 };
+
+var abilityDialog = {
+	name: "pop-usual prt-ability-dialog",
+	waitTime:1000,
+	btnType:HTML_ELEM,
+	straight:true	
+}
 
 
 function combatBackUp(isBackUp, skillList){
@@ -542,149 +729,6 @@ function comBatContinue(skillList){
 	return canStart;
 }
 
-//combat
-var skillnum, state, clickTimerStart, clickTimer, firstTry, checkTimer;
-function initRound(){
-	skillnum=0; 
-	state=0;
-	clickTimerStart = false;
-	clickTimer = 0;
-	firstTry = true;
-	checkTimer = 0;
-}
-
-//combat per round
-function combat(skillList){
-	if(checkTimer==0){
-		checkTimer = setInterval (deal, 200, skillList);
-	}
-	var skilldom = buildSkill(skillList);
-	function deal(skillList){
-		if(skillnum == skillList.length){
-			clearInterval(checkTimer);
-			checkTimer = 0;
-			clickAttack();
-			state = 4;
-			//click attack
-		} else {
-			if(state!=2){
-				if(checkDom([okDom])){
-					clickOk();
-					return;
-				}
-			}
-			switch(state){
-			case 0://character
-				if(firstTry||!clickTimerStart){
-					simClick(skilldom[skillnum].character);
-					start();
-				} else if(checkDom([skilldom[skillnum].skillDivCheckDom])){
-					state++;
-					reset();
-				}break;
-			case 1://skill
-				if(firstTry||!clickTimerStart){
-					simClick(skilldom[skillnum].skill);
-					start();
-				} else if(checkDom([okAbilityDom])||checkDom([cancelAbilityDom])){
-					state++;
-					reset();
-				} break;
-			case 2://ok
-				if(firstTry||!clickTimerStart){
-					if(checkDom([okAbilityDom])){
-						clickGeneral(okAbilityDom.name);
-					} else if(checkDom([cancelAbilityDom])){
-						clickGeneral(cancelAbilityDom.name);
-					}
-					start();
-				} else if(checkDom([backDom, backDom1])){
-					//keep in current character if there is any other skill that need to be used.
-					if(skillnum<skillList.length-1
-						&&skilldom[skillnum].character==skilldom[skillnum+1].character){
-						skillnum++;
-						state = 1;
-					} else {
-						state++;
-					}
-					reset();
-				} break;
-			case 3://back
-				if(firstTry||!clickTimerStart){
-					clickBack();
-					start();
-				} else if(skillnum<skillList.length
-					&&skilldom[skillnum].characterDivDom.name==skilldom[skillnum].character.className){
-					state=0;
-					skillnum++;
-					reset();
-				} break;
-			}
-		}
-	}
-	function start(){
-		clickTimerStart = true;
-		firstTry = false;
-		clickTimer=setTimeout(function(){clickTimerStart=false;}, 1000);
-	}
-	function reset(){
-		clearTimeout(clickTimer);
-		clickTimerStart = false;
-		firstTry = true;		
-	}
-}
-
-/*
-skillList
-
-[character1, skill1, condition1], [character2, skill2, condition2],...]
-[[1,4],[2,1],[4,2][4,1],[3,2]]
-*/
-function buildSkill(skillList){
-	var skilldom=[];
-	for(var act = 0; act < skillList.length; act++){
-		var cr = skillList[act][0], sk = skillList[act][1];
-		var characterDiv = document.getElementsByClassName("lis-character" + cr + " btn-command-character")[0];
-		var skillDivs = document.getElementsByClassName("lis-character"+cr);
-		var skillDiv = skillDivs[0], iter = 1;
-		while((skillDiv.className!=("lis-character"+cr))&&iter<skillDivs.length){
-			skillDiv = skillDivs[iter];
-			iter++;
-		}
-		while(skillDiv.className!='prt-ability-list'){
-			skillDiv = skillDiv.nextSibling;
-		}
-		skillDiv = skillDiv.children[sk];
-		skilldom.push({character: characterDiv, skill: skillDiv,
-					characterDivDom: {
-						name: "lis-character" + cr + " btn-command-character",
-						btnType:HTML_ELEM
-					},
-					skillDivCheckDom: {
-						name: "prt-command-chara chara"+(cr+1),
-						btnType:HTML_ELEM
-					}});
-	}
-	return skilldom;
-}
-
-function clickBack(){
-	waitAndClick([{
-		name: "btn-command-back display-off display-on",
-		waitTime:1000,
-		btnType:HTML_ELEM,
-		needClick:true,
-		straight:true	
-	},
-	{
-		name: "btn-command-back display-on",
-		waitTime:1000,
-		btnType:HTML_ELEM,
-		needClick:true,
-		straight:true	
-	}], 1);
-}
-
 var controlArea = {
 	name:"prt-button-area",
 	btnType: HTML_ELEM,
@@ -702,13 +746,25 @@ waitAndClick([
 		needClick:true
 	},1]);	
 }
-
+//cjs-lp-rankup
 function backToQuest(){
-	clickOk();
-	clickQuest();
+	var checkTimer = setInterval(deal,1000);
+	function deal(){
+		if(checkDom([{name:"btn-usual-close", btnType:HTML_ELEM}])){
+			clickGeneral("btn-usual-close");
+		} else if(checkDom([{name:"btn-control", btnType:HTML_ELEM}])){
+			clickQuest();
+		} else if(checkDom([okDom])){
+			var container = document.getElementsByClassName("prt-popup-footer")[0];
+			if(container!=null&&!isHidden(container)){
+				var okbtn = container.getElementsByClassName("btn-usual-ok")[0];
+				if(okbtn!=null){
+					simClick(okbtn);
+				}
+			}
+		} 
+	}
 }
-
-//combat
 
 //casino------------------------------------------------------------------------------------------
 function playCombineCard(keepCard){

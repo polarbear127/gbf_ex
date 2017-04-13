@@ -3,10 +3,67 @@
 var mainDiv = document.getElementById('main');
 var infoDiv = document.getElementById('info');
 var selectAllBtn = document.getElementById('select_all');
+var timerDiv = document.getElementById('timer');
+
+timerDiv.innerText = "no waiting event";
 
 var agencyConn = chrome.runtime.connect({
-    name: "devtools-agency"
+    name: "devtools-agency",
 });
+var countDownTimer = 0;
+function countDown(time, callback){
+	var targetTime = new Date().getTime()+time;
+	if(countDownTimer!=0){
+		clearInterval(countDownTimer);
+	}
+	countDownTimer = setInterval(function() {
+		var now = new Date().getTime();
+		var distance = targetTime - now;
+		if (distance < 0) {
+    		clearInterval(countDownTimer);
+    		countDownTimer = 0;
+    		timerDiv.innerText = "no waiting event";
+    		callback();
+    		return;
+  		}
+		var hours = Math.floor((distance % (1000 * 60 * 60 * 24)) / (1000 * 60 * 60));
+  		var minutes = Math.floor((distance % (1000 * 60 * 60)) / (1000 * 60));
+  		var seconds = Math.floor((distance % (1000 * 60)) / 1000);
+  		timerDiv.innerText = hours + "h " + minutes + "m " + seconds + "s ";
+	},1000);
+}
+
+function getStamTime(stam){
+	return stam*5*60*1000;
+}
+
+var waitingMode = 0;//0->waiting for stam enough for a quest
+					//1->waiting for stam full
+
+agencyConn.onMessage.addListener(function (msg) {
+    console.log("Tab Data recieved is  " + JSON.stringify(msg));
+    switch(msg.state){
+    	case "lackStam":passMessage({type:"stop"});
+    					var stamTime = 0;
+    					if(waitingMode == 0){
+    						stamTime = getStamTime(msg.data.stamGap);
+    					} else if(waitingMode == 1){
+    						stamTime = getStamTime(msg.data.totalStam - msg.data.userStam);
+    					}
+    					countDown(stamTime, function(){
+    						passMessage({type:"reload"});
+    					});
+    					break;
+    	case "noQuestFound":passMessage({type:"stop"});break;
+    }
+});
+
+agencyConn.postMessage({
+    name: 'init',
+    tabId: chrome.devtools.inspectedWindow.tabId
+});
+
+
 
 var GBF_ADDR = "http://game.granbluefantasy.jp/";
 
@@ -46,13 +103,18 @@ var BATTLE_ATTACKRESULT = "http://game.granbluefantasy.jp/multiraid/normal_attac
 var BATTLE_SKILLRESULT = "http://game.granbluefantasy.jp/multiraid/ability_result";
 var BATTLE_RESULT = "http://game.granbluefantasy.jp/resultmulti/data";
 
+//var EVENT_ADDR = "http://game.granbluefantasy.jp/teamraid028/top/content/index";
+var EVENT_ADDR = "http://game.granbluefantasy.jp/advent014/top/content/index";
+
 var NO_REPEAT = -1;
 var SHORT_TIME = 10000;
 var MEDIUM_TIME = 30000;
 var LONG_TIME = 60000;
 
 var questAddrHLMap=[
-{addr:MY_PAGE, h:toQuest},
+//{addr:MY_PAGE, h:toQuest},
+{addr:MY_PAGE, h:toEvent},
+{addr:EVENT_ADDR, h:toTargetEvent},
 {addr:QUEST_FEATURE, h:toTargetQuests},
 {addr:QUEST_FEATURE1, h:toTargetQuests},
 {addr:QUEST_FAVORITE, h:showInfo},
@@ -75,25 +137,52 @@ var CelesteVH = "300251";
 
 var targetQuests=[TiamatVH, ColossusVH, LeviathanVH, YggdrasilVH, AdversaVH, CelesteVH];
 
-/* //ssr -> islander vh*/
-var battlePlan = {
+
+
+
+//ssr -> islander vh
+var battlePlan1 = {
 isBackUp:false,
+targetDeck:"Party 1",
 skillList:
 [
-[[1,4],[2,1],[4,2],[4,1],[3,2]]//round0
+[[1,4],[2,1],[4,2],[4,3],[4,1],[3,2]]//round0
 ]
 };
-/*
-var battlePlan = {
+
+
+
+//sr, r-> islander vh
+var battlePlan2 = {
+targetDeck:"Party5",
 isBackUp:false,
 skillList:
 [
-[[1,1],[1,2],[1,3],[1,4],[2,1],[2,2],[4,1],[4,2]],//round0
+[[0,1],[1,1],[1,2],[1,3],[1,4],[7,6],[2,1],[2,2],[2,3],[4,1],[4,2]],//round0
 [],//round1
 [],//round2
 [[3,1],[3,2],[3,3]]//round3
 ]
-};*/
+};
+
+
+//ssr -> event ex
+var battlePlan3 = {
+targetDeck:"Party 1",
+isBackUp:false,
+skillList:
+[
+[[0,2],[1,1],[1,2],[1,3],[1,4],[2,1],[2,2],[7,6],[3,2],[3,1]],//round0
+[],//round1, boss full ballon
+[[4,2],[4,3],[4,1],[3,3]],
+[[0,1],[2,3],[3,1]],
+[],
+[[1,2],[1,4],[2,1]],
+[]
+]
+};
+
+var battlePlan = battlePlan3;
 
 var supporterAtter = "dark";
 var supporterSummon = ["Bahamut"];
@@ -166,6 +255,38 @@ function toQuest(content, encode){
 	showInfo(content, encode);
 	passMessage({type:"mainMenu", data:"quest", timeLimit:SHORT_TIME});
 }
+/*
+function toEvent(content, encode){
+	showInfo(content, encode);
+	passMessage({type:"mainMenu", data:"event/teamraid028", timeLimit:SHORT_TIME});	
+}*/
+
+function toEvent(content, encode){
+	showInfo(content, encode);
+	passMessage({type:"mainMenu", data:"event/advent014", timeLimit:SHORT_TIME});	
+}
+//青龙 711091
+//白虎 711141
+//朱雀 711191
+function toTargetEvent(content, encode){
+	passMessage({type:"targetEvent", data:[{name:"btn-select-multi",
+											type:"single",
+											check:"prt-list-list"}, 
+											{name:"btn-start-multi",
+											 type:"list",
+											 targetAttr:"data-quest-id",
+											 id:"711191"}], timeLimit:SHORT_TIME});
+}
+
+/*function toTargetEvent(content, encode){
+	passMessage({type:"targetEvent", data:[{name:"btn-ex-raid2",
+											type:"single",
+											check:"prt-box-treasure"}, 
+											{name:"btn-multi-battle lis-quest-list",
+											 type:"list",
+											 targetAttr:"data-quest-id",
+											 id:"717151"}], timeLimit:SHORT_TIME});
+}*/
 
 function toTargetQuests(content, encode){
 	showInfo(content, encode);
@@ -184,7 +305,7 @@ function chooseSupporter(content, encode){
 }
 
 function chooseDeck(content, encode){
-	passMessage({type:"chooseDeck", data:1, timeLimit:MEDIUM_TIME});
+	passMessage({type:"chooseDeck", data:battlePlan.targetDeck, timeLimit:MEDIUM_TIME});
 }
 
 function recodBattleInfo(content, encode){

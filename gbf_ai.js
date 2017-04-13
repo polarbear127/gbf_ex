@@ -239,3 +239,79 @@ tests2.forEach(function(test){
 		console.log('%c'+result, 'background: red');
 	}
 });*/
+
+/*
+//start
+status:{
+	boss:{param:[{modechange:2,
+		  		  modegauge:43,
+		  		  hp:"453182",
+		  		  hpmax:1000000,
+		  		  condition:{buff:[],debuff:[]}
+		  		  }
+		  		]
+		},
+	player:{param:[{alive:1,
+					 condtion:{buff:[{status:"1072"}],
+							   debuff:[]},
+					 hp:6889,
+					 hpmax:6889,
+					 recast:31
+					},
+				  ]
+		}
+	summon_enable:1,
+	summon:[{recast:8}],
+	supporter:{recast:8},
+	turn:2
+}
+//attack result
+scenario:[
+	{cmd:"boss_gauge", hp:284970, hpmax:1000000},
+	{cmd:"modechange", mode:"2", gauge:6},//last mode change
+	{cmd:"attack", from:"boss", damage:[{hp:4830,pos:2}]},//last attack, last damage
+	{cmd:"recast", pos:0, to:"player", value:42}//last recast
+	{cmd:"condition", pos:0, to:"player", condition:{buff:[],debuff[]}}//last condition
+]
+status:{
+	ability:[
+		list:{[
+				[{ability-recast:3},{}]
+			]
+		},
+	],
+	summon_enable:1,
+	summon:{recast: [4, 7, 4, 7, 7]},
+	supporter:{recast: 7},
+	turn:3
+*/
+
+function judgeAction(cmd, action){
+	switch(action.type){
+		case "auto":
+		case "manual":
+		case "manual-condition":
+	}
+}
+
+function combatAI(cmd, battlePlan){
+	var chara = battlePlan.chara;
+	var skillUse = [];
+	for(var i=0;i<chara.length;i++){
+		var skills = chara[i].skills;
+		for(var j=0;j<skills.length;j++){
+			if(judgeAction(cmd, skills[j])){
+				skillUse.push(skills[j]);
+			}
+		}
+	}
+
+	var summon = battlePlan.summon;
+	var summonAvailable = [];
+	for(var i=0;i<summon.length;i++){
+		if(judgeAction(cmd, summon[i])){
+			summonAvailable.push(summon[i]);
+		}
+	}
+
+}

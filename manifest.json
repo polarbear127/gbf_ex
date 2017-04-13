@@ -21,7 +21,7 @@
     {
     	"run_at": "document_end",
         "matches": ["http://game.granbluefantasy.jp/*"],
-        "js": ["content.js"]
+        "js": ["content.js","battle.js"]
     }
   ],
 

@@ -1,8 +1,13 @@
+var devtoolport = null;
 chrome.runtime.onConnect.addListener(
 	function(port){
 		if(port.name == "devtools-agency"){
+			devtoolport = port;
 			port.onMessage.addListener(
 				function(msg) {
+					if(msg.name=="init"){
+						return;
+					}
 					chrome.tabs.query({url:"http://game.granbluefantasy.jp/*"}, function(tabs) {
 							if(tabs.length>=1){
 		  						chrome.tabs.sendMessage(tabs[0].id, msg, function(response) {
@@ -13,7 +18,11 @@ chrome.runtime.onConnect.addListener(
 				});
 		}
 	});
-
+chrome.runtime.onMessage.addListener(function(request, sender, sendResponse) {
+	if(sender.tab){
+		devtoolport.postMessage(request);
+	}
+});
 chrome.webRequest.onBeforeRequest.addListener(function(details){
 	var bodyString = String.fromCharCode.apply(null, new Uint8Array(details.requestBody.raw[0].bytes));
 	var realBody = JSON.parse(bodyString);
