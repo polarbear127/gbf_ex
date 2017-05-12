@@ -6,13 +6,14 @@ var summon_list = "prt-summon-list opened";//find pos=6;
 var summons = "lis-summon on btn-summon-available";
 var portion_open = "btn-temporary";
 var portion_menu = "prt-select-item";
-var green_portion = "lis-item item-small btn-temporary-small";
+var green_portion = "lis-item item-small btn-temporary-small ";
 var blue_portion = "lis-item item-large btn-temporary-large";// disable if equal zero
 
-var portion_choose = "txt-select-chara";//click chara, wait for attack show up
+var portion_choose = "txt-confirm";//click chara, wait for attack show up
 
 var btn_usual_use = "btn-usual-use";
 var btn_attack = "btn-attack-start display-on";
+var icon_diagram = "img-diagram display-on";
 var btn_cancel = "btn-usual-cancel";
 
 var skillnum, state, clickTimerStart, clickTimer, firstTry, checkTimer;
@@ -102,28 +103,35 @@ function combat(skillList){
 							state++;
 							reset();
 						}break;
-				case 2: if(skilldom[skillnum].prt_type==1){
+				case 2: if(skilldom[skillnum].prt_type==0){
 							var chara = findHealChara();
 							if(chara!=null){
-								clickGeneral(chara);
+								if(firstTry||!clickTimerStart){
+									clickGeneral(chara);
+									start();
+								} else if(!checkDomByName([portion_choose])){
+									state++;
+									reset();
+								}
 							} else {
 								clickGeneral(btn_cancel);
 								state = 4;
 							}
-						} else if(skilldom[skillnum].prt_type==2){
+						} else if(skilldom[skillnum].prt_type==1){
 							if(!checkPrtUsable()){
 								clickGeneral(btn_cancel);
 								state = 4;
 							} else {
 								if(firstTry||!clickTimerStart){
 									clickGeneral(btn_usual_use);
+									start();
 								} else if(!checkDomByName([btn_attack])){
 									state++;
 									reset();
 								}
 							}
 						}break;
-				case 3: if(checkDomByName([btn_attack])){
+				case 3: if(checkDomByName([icon_diagram])){
 							skillnum++;
 							state = 0;
 						}break;
@@ -151,17 +159,20 @@ function combat(skillList){
 				if(firstTry||!clickTimerStart){
 					simClick(skilldom[skillnum].skill);
 					start();
-				} else if(checkDom([okSummonDom])){
+				} else if(checkDom([summonDialog, okSummonDom])){
 					state++;
 					reset();
-				} break;
+				} else if(!checkDom([skilldom[skillnum].skillDivCheckDom])){
+					state--;
+					reset();
+				}break;
 			case 2://ok
 				if(firstTry||!clickTimerStart){
-					if(checkDom([okSummonDom])){
+					if(checkDom([summonDialog, okSummonDom])){
 						clickGeneral(okSummonDom.name);
 					} 
 					start();
-				} else if(!checkDom([skilldom[skillnum].skillDivCheckDom])){
+				} else if(!checkDom([summonDialog])){
 					state = 0;
 					skillnum++;
 					reset();
@@ -251,8 +262,8 @@ function buildSkill(skillList){
 		} else if(skillList[act][0]==-2){//portion
 			var prt=null;
 			switch(skillList[act][1]){
-				case 1: prt=green_portion;break;
-				case 2: prt=blue_portion;break;
+				case 0: prt=green_portion;break;
+				case 1: prt=blue_portion;break;
 			}
 			skilldom.push({type:-2, prt_type:skillList[act][1], prt_name:prt });
 			continue;

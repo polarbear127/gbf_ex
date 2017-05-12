@@ -97,23 +97,29 @@ var QUEST_SUPPORT = "http://game.granbluefantasy.jp/quest/content/supporter/"
 var QUEST_DECK = "http://game.granbluefantasy.jp/deckcombination/deck_combination_group_list";
 
 var MULTI_START = "http://game.granbluefantasy.jp/multiraid/start.json";
+var MULTI_START1 = "http://game.granbluefantasy.jp/rest/multiraid/start.json";
 var MULTI_BATTLESTART = "http://game.granbluefantasy.jp/multiraid/multi_member_info";
+var MULTI_BATTLESTART1 = "http://game.granbluefantasy.jp/rest/multiraid/multi_member_info";
 
 var BATTLE_ATTACKRESULT = "http://game.granbluefantasy.jp/multiraid/normal_attack_result";
+var BATTLE_ATTACKRESULT1 = "http://game.granbluefantasy.jp/rest/multiraid/normal_attack_result";
 var BATTLE_SKILLRESULT = "http://game.granbluefantasy.jp/multiraid/ability_result";
+var BATTLE_SKILLRESULT1 = "http://game.granbluefantasy.jp/rest/multiraid/ability_result";
 var BATTLE_RESULT = "http://game.granbluefantasy.jp/resultmulti/data";
 
+
 //var EVENT_ADDR = "http://game.granbluefantasy.jp/teamraid028/top/content/index";
-var EVENT_ADDR = "http://game.granbluefantasy.jp/advent014/top/content/index";
+var EVENT_ADDR = "http://game.granbluefantasy.jp/advent015/top/content/newindex";
+//var EVENT_ADDR = "http://game.granbluefantasy.jp/teamraid029/top/content/index";
 
 var NO_REPEAT = -1;
 var SHORT_TIME = 10000;
 var MEDIUM_TIME = 30000;
-var LONG_TIME = 60000;
+var LONG_TIME = 100000;
 
 var questAddrHLMap=[
 //{addr:MY_PAGE, h:toQuest},
-{addr:MY_PAGE, h:toEvent},
+//{addr:MY_PAGE, h:toEvent},
 {addr:EVENT_ADDR, h:toTargetEvent},
 {addr:QUEST_FEATURE, h:toTargetQuests},
 {addr:QUEST_FEATURE1, h:toTargetQuests},
@@ -122,9 +128,13 @@ var questAddrHLMap=[
 {addr:QUEST_SUPPORT, h:chooseSupporter},
 {addr:QUEST_DECK, h:chooseDeck},
 {addr:MULTI_START, h:recodBattleInfo},
+{addr:MULTI_START1, h:recodBattleInfo},
 {addr:MULTI_BATTLESTART, h:startBattle},
+{addr:MULTI_BATTLESTART1, h:startBattle},
 {addr:BATTLE_ATTACKRESULT, h:nextTurn},
+{addr:BATTLE_ATTACKRESULT1, h:nextTurn},
 {addr:BATTLE_SKILLRESULT, h:checkEnd},
+{addr:BATTLE_SKILLRESULT1, h:checkEnd},
 {addr:BATTLE_RESULT, h:checkResult}
 ];
 
@@ -143,7 +153,7 @@ var targetQuests=[TiamatVH, ColossusVH, LeviathanVH, YggdrasilVH, AdversaVH, Cel
 //ssr -> islander vh
 var battlePlan1 = {
 isBackUp:false,
-targetDeck:"Party 1",
+targetDeck:"Party 4",
 skillList:
 [
 [[1,4],[2,1],[4,2],[4,3],[4,1],[3,2]]//round0
@@ -172,12 +182,27 @@ targetDeck:"Party 1",
 isBackUp:false,
 skillList:
 [
-[[0,2],[1,1],[1,2],[1,3],[1,4],[2,1],[2,2],[7,6],[3,2],[3,1]],//round0
-[],//round1, boss full ballon
-[[4,2],[4,3],[4,1],[3,3]],
+[[0,2],[1,1],[1,2],[1,3],[1,4],[2,1],[2,2],[7,6],[3,2],[3,1]],//round1
+[[-1,1]],
+[[4,2],[4,3],[4,1],[3,3]],//round3, boss full ballon
 [[0,1],[2,3],[3,1]],
 [],
 [[1,2],[1,4],[2,1]],
+[]
+]
+};
+
+//ssr -> event ex+(AT, 3 ball boss)
+var battlePlan4 = {
+targetDeck:"Party 1",
+isBackUp:false,
+skillList:
+[
+[[0,2],[1,2],[1,4],[2,1],[2,2]],//round0
+[[-1,1]],
+[[-1,1],[1,1],[1,3],[7,6],[3,2],[3,1]],//round1
+[[0,1],[4,2],[4,3],[4,1]],
+[[2,3],[3,3]],
 []
 ]
 };
@@ -265,6 +290,19 @@ function toEvent(content, encode){
 	showInfo(content, encode);
 	passMessage({type:"mainMenu", data:"event/advent014", timeLimit:SHORT_TIME});	
 }
+/*
+//718241vh
+//718261ex+
+function toTargetEvent(content, encode){
+	passMessage({type:"targetEvent", data:[{name:"btn-ex-raid2",
+											type:"single",
+											check:"prt-box-treasure"}, 
+											{name:"btn-multi-battle lis-quest-list",
+											 type:"list",
+											 targetAttr:"data-quest-id",
+											 id:"718261"}], timeLimit:SHORT_TIME});
+}
+*/
 //青龙 711091
 //白虎 711141
 //朱雀 711191
@@ -275,7 +313,7 @@ function toTargetEvent(content, encode){
 											{name:"btn-start-multi",
 											 type:"list",
 											 targetAttr:"data-quest-id",
-											 id:"711191"}], timeLimit:SHORT_TIME});
+											 id:"711141"}], timeLimit:SHORT_TIME});
 }
 
 /*function toTargetEvent(content, encode){

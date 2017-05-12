@@ -132,7 +132,11 @@ function waitAndClick(btns, maxClick){
 				if(btn.needClick){
 					var waitTime = btn.waitTime+Math.random*randomWaitTime;
 					if(btn.btnType==HTML_ELEM){
-						btn.elem = document.getElementsByClassName(btn.name)[0];
+						var pdom = document;
+						if(typeof btn.parent!="undefined"){
+							pdom = document.getElementsByClassName(btn.parent)[0];
+						}
+						btn.elem = pdom.getElementsByClassName(btn.name)[0];
 						if(btn.elem&&!isHidden(btn.elem)){
 							setTimeout(function(btn){
 								simClick(btn.elem);
@@ -616,6 +620,7 @@ var endDiv = {
 function clickBackUpCancel(){
 	waitAndClick([backupwindow,{
 		name: "btn-usual-cancel",
+		parent:"pop-usual pop-start-assist pop-show",
 		waitTime:1000,
 		btnType:HTML_ELEM,
 		needClick:true	
@@ -692,6 +697,14 @@ var abilityDialog = {
 	straight:true	
 }
 
+var summonDialog = {
+	name:"pop-usual pop-summon-detail",
+	waitTime:1000,
+	btnType:HTML_ELEM,
+	straight:true,
+	needClick:false,
+	needCheck:true	
+}
 
 function combatBackUp(isBackUp, skillList){
 	if(isBackUp){
