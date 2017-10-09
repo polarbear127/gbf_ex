@@ -2,11 +2,11 @@ Chrome development tool extension for gbf.
 
 auto play poker in casino.
 
-auto play islanders.
+auto play islanders, free quest, special quest, event, coop.
 
 How to change battle plan:
 
-In gbf_panel.js
+In panel/gbf_panel_battle_plan.js
 example:
 skillList:
 [
@@ -20,14 +20,7 @@ if you want to set second round just add another array to the skillList.
 if round number >= length of skillList or all skills are use up
 party will turn to attack.
 
-no summons.
-no target need skills. 
-
-How to set summon:
-var supporterAtter = "dark";//supporter attribute
-var supporterSummon = ["Bahamut"];//supporter summon
-
-available attributes:
+available attribute for summon:
 fire
 water
 earth
