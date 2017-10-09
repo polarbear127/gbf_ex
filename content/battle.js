@@ -18,6 +18,8 @@ var btn_cancel = "btn-usual-cancel";
 
 var skillnum, state, clickTimerStart, clickTimer, firstTry, checkTimer;
 
+var targetdiv = "btn-targeting enemy-";
+
 function lxor(a, b){
 	return a? (!b):b;
 }
@@ -50,8 +52,9 @@ function checkPrtUsable(){
 
 //combat per round
 function combat(skillList){
-	if(checkTimer==0){
+	if(checkTimer===0){
 		checkTimer = setInterval (deal, 200, skillList);
+		global_timer_list.push(checkTimer);
 	}
 	var skilldom = buildSkill(skillList);
 	function deal(skillList){
@@ -69,7 +72,7 @@ function combat(skillList){
 					var r1 = checkDomByName([auto_lock]);
 					var r2 = checkDomByName([auto_hold]);
 					if(lxor(r1, r2)){
-						if((skilldom[skillnum].state == 0&&r1)||(r2&&skilldom[skillnum].state == 1)) {
+						if((skilldom[skillnum].state === 0&&r1)||(r2&&skilldom[skillnum].state === 1)) {
 							skillnum++;
 							if(!firstTry){
 								reset();
@@ -83,6 +86,24 @@ function combat(skillList){
 								}
 								start();
 							}
+						}
+					}
+
+			}
+		} else if(skilldom[skillnum].type == -3){
+			switch(state){
+				case 0: 
+					var tar = targetdiv+skilldom[skillnum].target;
+					var tarlock = tar+" lock-on";
+					if(checkDomByName([tarlock])){
+						skillnum++;
+						if(!firstTry){
+							reset();
+						}
+					} else {
+						if(firstTry||!clickTimerStart){
+							clickGeneral(tar);
+							start();
 						}
 					}
 
@@ -103,9 +124,9 @@ function combat(skillList){
 							state++;
 							reset();
 						}break;
-				case 2: if(skilldom[skillnum].prt_type==0){
+				case 2: if(skilldom[skillnum].prt_type===0){
 							var chara = findHealChara();
-							if(chara!=null){
+							if(chara!==null){
 								if(firstTry||!clickTimerStart){
 									clickGeneral(chara);
 									start();
@@ -199,10 +220,17 @@ function combat(skillList){
 				if(firstTry||!clickTimerStart){
 					simClick(skilldom[skillnum].skill);
 					start();
-				} else if(checkDom([okAbilityDom])||checkDom([cancelAbilityDom])){
-					state++;
+				} else if(skilldom[skillnum].skill.className!="lis-ability btn-ability-available"){
+					if(skillnum<skillList.length-1&&
+						skilldom[skillnum].character==skilldom[skillnum+1].character){
+						skillnum++;
+						state = 1;
+					} else {
+						state++;
+					}
 					reset();
 				} break;
+			/*
 			case 2://ok
 				if(firstTry||!clickTimerStart){
 					if(checkDom([okAbilityDom])){
@@ -213,21 +241,21 @@ function combat(skillList){
 					start();
 				} else if(!checkDom([abilityDialog])){
 					//keep in current character if there is any other skill that need to be used.
-					if(skillnum<skillList.length-1
-						&&skilldom[skillnum].character==skilldom[skillnum+1].character){
+					if(skillnum<skillList.length-1&&
+						skilldom[skillnum].character==skilldom[skillnum+1].character){
 						skillnum++;
 						state = 1;
 					} else {
 						state++;
 					}
 					reset();
-				} break;
-			case 3://back
+				} break;*/
+			case 2://back
 				if(firstTry||!clickTimerStart){
 					clickBack();
 					start();
-				} else if(skillnum<skillList.length
-					&&skilldom[skillnum].characterDivDom.name==skilldom[skillnum].character.className){
+				} else if(skillnum<skillList.length&&
+					skilldom[skillnum].characterDivDom.name==skilldom[skillnum].character.className){
 					state=0;
 					skillnum++;
 					reset();
@@ -258,7 +286,7 @@ function buildSkill(skillList){
 	for(var act = 0; act < skillList.length; act++){
 		if(skillList[act][0]==-1){//chain attack
 			skilldom.push({type:-1, state:skillList[act][1]});
-			continue;//handle on time
+			continue;//handle on run time
 		} else if(skillList[act][0]==-2){//portion
 			var prt=null;
 			switch(skillList[act][1]){
@@ -267,6 +295,9 @@ function buildSkill(skillList){
 			}
 			skilldom.push({type:-2, prt_type:skillList[act][1], prt_name:prt });
 			continue;
+		} else if(skillList[act][0]==-3){
+			skilldom.push({type:-3, target:skillList[act][1]+1});//conversion will minus one
+			continue;//handle on run time
 		} else if(skillList[act][0]==6){//summon
 			var sk = skillList[act][1];
 			var characterDiv = document.getElementsByClassName(summon_top)[0];
@@ -285,6 +316,7 @@ function buildSkill(skillList){
 			});
 			continue;
 		}
+
 		var cr = skillList[act][0], sk = skillList[act][1];
 		var characterDiv = document.getElementsByClassName("lis-character" + cr + " btn-command-character")[0];
 		var skillDivs = document.getElementsByClassName("lis-character"+cr);

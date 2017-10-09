@@ -10,7 +10,7 @@ function casino_poker_ai(cardInfo){
 		index++;
 	});
 	function cardComparator(c1, c2){
-		if(c1.num-c2.num!=0){
+		if(c1.num-c2.num!==0){
 			return c1.num - c2.num;
 		} else {
 			return c1.color - c2.color;
@@ -285,7 +285,7 @@ status:{
 	supporter:{recast: 7},
 	turn:3
 */
-
+/*
 function judgeAction(cmd, action){
 	switch(action.type){
 		case "auto":
@@ -314,4 +314,4 @@ function combatAI(cmd, battlePlan){
 		}
 	}
 
-}
+}*/

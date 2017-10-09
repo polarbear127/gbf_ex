@@ -1,4 +1,5 @@
 var devtoolport = null;
+var battleplan = {};
 chrome.runtime.onConnect.addListener(
 	function(port){
 		if(port.name == "devtools-agency"){
@@ -11,7 +12,9 @@ chrome.runtime.onConnect.addListener(
 					chrome.tabs.query({url:"http://game.granbluefantasy.jp/*"}, function(tabs) {
 							if(tabs.length>=1){
 		  						chrome.tabs.sendMessage(tabs[0].id, msg, function(response) {
-		    						console.log(response.farewell);
+		  								if(response){
+		    								console.log(response.farewell);
+		    							}
 		    						});
 							}	
 						});
@@ -23,6 +26,9 @@ chrome.runtime.onMessage.addListener(function(request, sender, sendResponse) {
 		devtoolport.postMessage(request);
 	}
 });
+
+
+//此处源码来自Q群，出处不明，若引用不当，望告知
 chrome.webRequest.onBeforeRequest.addListener(function(details){
 	var bodyString = String.fromCharCode.apply(null, new Uint8Array(details.requestBody.raw[0].bytes));
 	var realBody = JSON.parse(bodyString);

@@ -6,24 +6,29 @@
 
   "name": "GBF EX",
   "description": "Tools for granblue fantasy",
-  "version": "0.0.1",
-
-  "browser_action": {
-    "default_icon": "icon.png",
-    "default_popup": "popup.html"
-  },
+  "version": "0.0.2",
 
    "background": {
-    "scripts": ["agency.js"]
+    "scripts": ["background/agency.js"]
   },
 
   "content_scripts": [
     {
     	"run_at": "document_end",
         "matches": ["http://game.granbluefantasy.jp/*"],
-        "js": ["content.js","battle.js"]
+        "js": ["content/util.js",
+        	"content/core.js",
+        	"content/common.js",
+        	"content/di.js",
+        	"content/content_casino.js",
+        	"content/content_route.js",
+        	"content/content_battle_support.js",
+        	"content/content.js",
+        	"content/battle.js"]
     }
   ],
+
+  "content_security_policy": "script-src 'self' https://ajax.googleapis.com/ajax/libs/jquery/3.2.1/jquery.min.js; object-src 'self'",
 
   "permissions": [
   	"tabs",
